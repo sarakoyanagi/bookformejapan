@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Make a Request — BookForMe Japan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --ink: #0e0b07; --cream: #f4efe6; --gold: #c09a3a;
+    --rust: #7d3220; --muted: #6b5d47; --paper: #faf8f3;
+    --line: rgba(192,154,58,0.22);
+  }
+  body { background: var(--ink); color: var(--cream); font-family: 'DM Sans', sans-serif; font-weight: 300; }
+  #root { min-height: 100vh; }
+  input::placeholder, textarea::placeholder { color: rgba(244,239,230,0.2); font-family: 'DM Sans', sans-serif; }
+  input:focus, textarea:focus { border-color: rgba(192,154,58,0.5) !important; outline: none; }
+  input[type=date]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes dotPulse { 0%,80%,100%{opacity:0.3} 40%{opacity:1} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState } = React;
+
+// ── Zapier Webhook ─────────────────────────────────────────────
+const ZAPIER_WEBHOOK_URL = "https://hooks.zapier.com/hooks/catch/YOUR_HOOK_ID/";
+
+async function sendToZapier(payload) {
+  try {
+    await fetch(ZAPIER_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch(e) { console.warn("Zapier failed:", e); }
+}
+
+// ── Claude API ─────────────────────────────────────────────────
+const SYSTEM_PROMPT = `You are a Japan concierge specializing in phone-only bookings for foreign visitors.
+
+When given a booking request:
+1. Use web_search to look up REAL, current information:
+   - For restaurants: search reservation method, Tabelog rating, foreign guest policy, phone number
+   - For ryokan: search booking method (phone/fax/Jalan/Ikyu), English availability
+   - For sumo: search current JSA ticket sale dates and availability
+   - For kabuki/theatre: search current programme and booking method
+2. Identify which Japanese platform is needed and why foreigners can't use it directly
+3. Assess feasibility honestly based on real findings
+4. Only if NOT feasible: search for 3 real alternative experiences
+
+Respond ONLY in this exact JSON (no markdown):
+{
+  "feasible": true or false,
+  "confidence": "high"|"medium"|"low",
+  "reason": "1-2 sentences — always mention the specific venue name",
+  "searchSummary": "1 sentence with venue name and key facts found",
+  "platformBarrier": "which platform/method blocks foreigners and why",
+  "staffNote": "phone number if found, platform to use, tips for the call",
+  "alternatives": [],
+  "couponMessage": "warm message with ¥500 coupon — only when feasible=false"
+}
+
+When feasible=false, populate alternatives with exactly 3 real venues:
+{ "name": "...", "type": "...", "why": "...", "difficulty": "easy|medium|hard", "emoji": "..." }
+
+Rules:
+- Always mention specific venue name in reason and searchSummary
+- platformBarrier always required
+- staffNote always required
+- couponMessage only when feasible=false`;
+
+async function callClaude(msg) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      system: SYSTEM_PROMPT,
+      tools: [{ type: "web_search_20250305", name: "web_search" }],
+      messages: [{ role: "user", content: msg }],
+    }),
+  });
+  const data = await res.json();
+  return (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+}
+
+// ── Constants ──────────────────────────────────────────────────
+const CATEGORIES = [
+  { id: "restaurant", emoji: "🍣", label: "Restaurant / Bar" },
+  { id: "ryokan",     emoji: "♨️", label: "Ryokan / Onsen Inn" },
+  { id: "sumo",       emoji: "🏆", label: "Sumo Tournament" },
+  { id: "kabuki",     emoji: "🎭", label: "Kabuki / Theatre" },
+  { id: "temple",     emoji: "⛩️", label: "Temple / Ceremony" },
+  { id: "other",      emoji: "✨", label: "Other" },
+];
+const SEARCH_STEPS = [
+  "Searching for venue information...",
+  "Checking reservation method & foreign guest policy...",
+  "Assessing platform barriers...",
+  "Evaluating feasibility...",
+];
+const DIFF_COLOR = { easy: "#4a9e6e", medium: "#c09a3a", hard: "#7d3220" };
+
+// ── Styles ─────────────────────────────────────────────────────
+const S = {
+  wrap: { minHeight: "100vh", background: "#0e0b07", color: "#f4efe6", fontFamily: "'DM Sans', sans-serif" },
+  header: { padding: "24px 40px", borderBottom: "1px solid rgba(192,154,58,0.2)", display: "flex", alignItems: "center", justifyContent: "space-between" },
+  logo: { fontSize: 18, letterSpacing: "0.2em", color: "#c09a3a", fontFamily: "'Playfair Display', serif" },
+  logoSpan: { color: "#f4efe6" },
+  backLink: { fontSize: 12, color: "rgba(244,239,230,0.4)", textDecoration: "none", letterSpacing: "0.08em" },
+  body: { maxWidth: 680, margin: "0 auto", padding: "48px 24px 80px", animation: "fadeUp 0.5s ease both" },
+  title: { fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: "normal", marginBottom: 8, lineHeight: 1.3 },
+  gold: { color: "#c09a3a", fontStyle: "italic" },
+  sub: { fontSize: 13, color: "rgba(244,239,230,0.4)", lineHeight: 1.75, marginBottom: 36 },
+  field: { marginBottom: 24 },
+  label: { display: "block", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "#c09a3a", marginBottom: 10 },
+  labelMuted: { color: "rgba(244,239,230,0.25)", fontStyle: "italic", textTransform: "none", letterSpacing: 0, marginLeft: 8, fontSize: 10 },
+  catGrid: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 },
+  catBtn: (sel) => ({ padding: "12px 10px", border: `1px solid ${sel ? "#c09a3a" : "rgba(192,154,58,0.2)"}`, background: sel ? "rgba(192,154,58,0.1)" : "transparent", color: sel ? "#f4efe6" : "rgba(244,239,230,0.4)", cursor: "pointer", fontSize: 12, textAlign: "left", display: "flex", flexDirection: "column", gap: 4, transition: "all 0.2s", fontFamily: "'DM Sans', sans-serif" }),
+  input: { width: "100%", background: "rgba(244,239,230,0.04)", border: "1px solid rgba(192,154,58,0.25)", color: "#f4efe6", padding: "11px 14px", fontSize: 14, fontFamily: "'DM Sans', sans-serif", outline: "none" },
+  hint: { fontSize: 11, color: "rgba(244,239,230,0.22)", marginTop: 7, lineHeight: 1.6 },
+  row2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 },
+  submitBtn: (dis) => ({ width: "100%", padding: "15px", background: dis ? "rgba(192,154,58,0.35)" : "#c09a3a", color: "#0e0b07", border: "none", fontSize: 13, letterSpacing: "0.12em", textTransform: "uppercase", cursor: dis ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, marginTop: 6 }),
+  feeNote: { fontSize: 10, color: "rgba(244,239,230,0.2)", marginTop: 14, textAlign: "center", letterSpacing: "0.05em" },
+  err: { color: "#c05040", fontSize: 12, marginBottom: 14 },
+  // searching
+  searchBox: { border: "1px solid rgba(192,154,58,0.25)", padding: "36px 28px", background: "rgba(192,154,58,0.04)", marginBottom: 24 },
+  searchTitle: { fontSize: 13, color: "#c09a3a", letterSpacing: "0.1em", marginBottom: 24, textAlign: "center" },
+  stepRow: (active) => ({ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, opacity: active ? 1 : 0.3, transition: "opacity 0.5s", fontSize: 13, color: "#f4efe6" }),
+  stepDot: (active) => ({ width: 7, height: 7, borderRadius: "50%", background: active ? "#c09a3a" : "rgba(192,154,58,0.25)", flexShrink: 0, transition: "background 0.5s" }),
+  searchNote: { fontSize: 11, color: "rgba(244,239,230,0.2)", marginTop: 20, textAlign: "center", letterSpacing: "0.06em" },
+  // result
+  resultBox: (ok) => ({ border: `1px solid ${ok ? "rgba(74,158,110,0.4)" : "rgba(125,50,32,0.5)"}`, padding: "24px 28px", marginBottom: 20, position: "relative", background: ok ? "rgba(74,158,110,0.05)" : "rgba(125,50,32,0.07)" }),
+  confBadge: (c) => ({ position: "absolute", top: 14, right: 14, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", padding: "3px 8px", border: `1px solid ${c === "high" ? "#4a9e6e" : c === "medium" ? "#c09a3a" : "#7d3220"}`, color: c === "high" ? "#4a9e6e" : c === "medium" ? "#c09a3a" : "#7d3220" }),
+  resultIcon: { fontSize: 22, marginBottom: 10 },
+  resultTitle: { fontSize: 17, fontFamily: "'Playfair Display', serif", marginBottom: 6 },
+  resultReason: { fontSize: 13, color: "rgba(244,239,230,0.55)", lineHeight: 1.7, marginBottom: 10 },
+  searchSum: { fontSize: 11, color: "rgba(244,239,230,0.28)", borderTop: "1px solid rgba(192,154,58,0.1)", paddingTop: 10, letterSpacing: "0.03em" },
+  staffBox: { background: "rgba(125,50,32,0.1)", border: "1px solid rgba(125,50,32,0.25)", padding: "14px 18px", marginBottom: 18 },
+  staffLabel: { fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: "#7d3220", marginBottom: 5 },
+  staffText: { fontSize: 12, color: "rgba(244,239,230,0.45)", lineHeight: 1.7 },
+  barrierBox: { background: "rgba(192,154,58,0.06)", border: "1px solid rgba(192,154,58,0.18)", padding: "14px 18px", marginBottom: 18, display: "flex", gap: 12, alignItems: "flex-start" },
+  barrierText: { fontSize: 13, color: "rgba(244,239,230,0.6)", lineHeight: 1.7 },
+  barrierLabel: { fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: "#c09a3a", marginBottom: 5 },
+  couponBox: { background: "rgba(192,154,58,0.07)", border: "1px solid rgba(192,154,58,0.25)", padding: "16px 20px", marginBottom: 18, display: "flex", gap: 12, alignItems: "flex-start" },
+  couponText: { fontSize: 13, color: "rgba(244,239,230,0.65)", lineHeight: 1.75 },
+  successBox: { background: "rgba(74,158,110,0.07)", border: "1px solid rgba(74,158,110,0.28)", padding: "16px 20px", marginBottom: 18, fontSize: 13, color: "rgba(244,239,230,0.65)", lineHeight: 1.75 },
+  altLabel: { fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "#c09a3a", marginBottom: 14 },
+  altCard: { border: "1px solid rgba(192,154,58,0.15)", padding: "16px 18px", marginBottom: 8, display: "flex", gap: 12, alignItems: "flex-start", background: "rgba(244,239,230,0.02)", cursor: "pointer", transition: "border-color 0.2s, background 0.2s" },
+  altName: { fontSize: 14, fontFamily: "'Playfair Display', serif", marginBottom: 4 },
+  altWhy: { fontSize: 12, color: "rgba(244,239,230,0.4)", lineHeight: 1.6, marginBottom: 6 },
+  altDiff: (d) => ({ display: "inline-block", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", padding: "2px 7px", border: `1px solid ${DIFF_COLOR[d]}`, color: DIFF_COLOR[d] }),
+  bookBtn: { marginLeft: "auto", flexShrink: 0, alignSelf: "center", padding: "7px 14px", background: "transparent", border: "1px solid rgba(192,154,58,0.35)", color: "#c09a3a", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" },
+  resetBtn: { background: "transparent", border: "1px solid rgba(244,239,230,0.12)", color: "rgba(244,239,230,0.35)", padding: "9px 20px", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer", marginTop: 20, fontFamily: "'DM Sans', sans-serif" },
+};
+
+// ── App ────────────────────────────────────────────────────────
+function App() {
+  const [form, setForm] = useState({ category: "", venue: "", mapsUrl: "", date: "", guests: "2", notes: "", email: "" });
+  const [phase, setPhase] = useState("form");
+  const [step, setStep] = useState(0);
+  const [result, setResult] = useState(null);
+  const [booked, setBooked] = useState(null);
+  const [err, setErr] = useState("");
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSubmit = async () => {
+    if (!form.category || !form.venue || !form.date) {
+      setErr("Please fill in category, venue name, and date.");
+      return;
+    }
+    setErr("");
+    setPhase("searching");
+    let s = 0;
+    const iv = setInterval(() => { s = Math.min(s + 1, SEARCH_STEPS.length - 1); setStep(s); }, 1800);
+
+    const msg = `Category: ${form.category}\nVenue: ${form.venue}\nGoogle Maps URL: ${form.mapsUrl || "not provided"}\nDate: ${form.date}\nGuests: ${form.guests}\nNotes: ${form.notes || "none"}`;
+
+    try {
+      const raw = await callClaude(msg);
+      clearInterval(iv);
+      setStep(SEARCH_STEPS.length);
+      const match = raw.replace(/```json|```/g, "").match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(match ? match[0] : raw);
+      setResult(parsed);
+      setPhase("result");
+      await sendToZapier({
+        submitted_at: new Date().toISOString(),
+        category: form.category, venue: form.venue,
+        maps_url: form.mapsUrl || "", date: form.date,
+        guests: form.guests, notes: form.notes || "", email: form.email || "",
+        feasible: parsed.feasible, confidence: parsed.confidence,
+        reason: parsed.reason, platform_barrier: parsed.platformBarrier || "",
+        staff_note: parsed.staffNote || "", search_summary: parsed.searchSummary || "",
+      });
+    } catch(e) {
+      clearInterval(iv);
+      setErr("Something went wrong. Please try again.");
+      setPhase("form");
+    }
+  };
+
+  const reset = () => {
+    setPhase("form"); setResult(null); setStep(0);
+    setForm({ category: "", venue: "", mapsUrl: "", date: "", guests: "2", notes: "", email: "" });
+  };
+
+  return (
+    <div style={S.wrap}>
+      <div style={S.header}>
+        <div style={S.logo}>BookForMe<span style={S.logoSpan}>Japan</span></div>
+        <a href="/" style={S.backLink}>← Back to home</a>
+      </div>
+
+      <div style={S.body}>
+
+        {phase === "form" && <>
+          <h1 style={S.title}>Make a <span style={S.gold}>Booking Request</span></h1>
+          <p style={S.sub}>Tell us where you want to go. We'll call in Japanese, handle everything, and send you a full briefing. Booking fee ¥5,000 — charged only on success.</p>
+
+          <div style={S.field}>
+            <label style={S.label}>Category</label>
+            <div style={S.catGrid}>
+              {CATEGORIES.map(c => (
+                <button key={c.id} style={S.catBtn(form.category === c.id)} onClick={() => set("category", c.id)}>
+                  <span style={{ fontSize: 18 }}>{c.emoji}</span>
+                  <span>{c.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={S.field}>
+            <label style={S.label}>Venue or Experience Name</label>
+            <input type="text" style={S.input}
+              placeholder="e.g. Sukiyabashi Jiro, Gora Kadan, January Sumo Tournament"
+              value={form.venue} onChange={e => set("venue", e.target.value)} />
+          </div>
+
+          <div style={S.field}>
+            <label style={S.label}>
+              Google Maps URL
+              <span style={S.labelMuted}>(recommended)</span>
+            </label>
+            <input type="url" style={S.input}
+              placeholder="https://maps.google.com/..."
+              value={form.mapsUrl} onChange={e => set("mapsUrl", e.target.value)} />
+            <div style={S.hint}>Google Maps → find venue → Share → Copy link. Helps us confirm the exact location and phone number.</div>
+          </div>
+
+          <div style={{ ...S.field, ...S.row2 }}>
+            <div>
+              <label style={S.label}>Preferred Date</label>
+              <input type="date" style={{ ...S.input, colorScheme: "dark" }}
+                value={form.date} onChange={e => set("date", e.target.value)} />
+            </div>
+            <div>
+              <label style={S.label}>Guests</label>
+              <input type="number" min="1" max="20" style={S.input}
+                value={form.guests} onChange={e => set("guests", e.target.value)} />
+            </div>
+          </div>
+
+          <div style={S.field}>
+            <label style={S.label}>Notes <span style={S.labelMuted}>(optional)</span></label>
+            <textarea style={{ ...S.input, minHeight: 68, resize: "vertical" }}
+              placeholder="Dietary restrictions, occasion, budget, seat preferences..."
+              value={form.notes} onChange={e => set("notes", e.target.value)} />
+          </div>
+
+          <div style={S.field}>
+            <label style={S.label}>Email for Confirmation</label>
+            <input type="email" style={S.input} placeholder="your@email.com"
+              value={form.email} onChange={e => set("email", e.target.value)} />
+          </div>
+
+          {err && <p style={S.err}>{err}</p>}
+          <button style={S.submitBtn(false)} onClick={handleSubmit}>Submit Request →</button>
+          <p style={S.feeNote}>No charge until booking confirmed · Booking fee ¥5,000 · non-refundable</p>
+        </>}
+
+        {phase === "searching" && (
+          <div style={S.searchBox}>
+            <div style={{ fontSize: 28, textAlign: "center", marginBottom: 16 }}>🔍</div>
+            <div style={S.searchTitle}>Searching for real-time information...</div>
+            {SEARCH_STEPS.map((s, i) => (
+              <div key={i} style={S.stepRow(i <= step)}>
+                <div style={S.stepDot(i <= step)} />
+                {s}
+              </div>
+            ))}
+            <div style={S.searchNote}>Staff will review and confirm within 24 hours</div>
+          </div>
+        )}
+
+        {phase === "result" && result && <>
+          <div style={S.resultBox(result.feasible)}>
+            <div style={S.confBadge(result.confidence)}>{result.confidence} confidence</div>
+            <div style={S.resultIcon}>{result.feasible ? "✅" : "❌"}</div>
+            <div style={S.resultTitle}>{result.feasible ? "Looks bookable — staff will confirm." : "May not be available right now."}</div>
+            <div style={S.resultReason}>{result.reason}</div>
+            {result.searchSummary && <div style={S.searchSum}>🔍 {result.searchSummary}</div>}
+          </div>
+
+          {result.platformBarrier && (
+            <div style={S.barrierBox}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>🔒</span>
+              <div>
+                <div style={S.barrierLabel}>Why this is hard to book as a foreigner</div>
+                <div style={S.barrierText}>{result.platformBarrier}</div>
+              </div>
+            </div>
+          )}
+
+          {result.staffNote && (
+            <div style={S.staffBox}>
+              <div style={S.staffLabel}>⚙ Staff Note (internal)</div>
+              <div style={S.staffText}>{result.staffNote}</div>
+            </div>
+          )}
+
+          {!result.feasible && result.couponMessage && (
+            <div style={S.couponBox}>
+              <span style={{ fontSize: 20 }}>🎟️</span>
+              <div style={S.couponText}>{result.couponMessage}</div>
+            </div>
+          )}
+
+          {result.feasible && (
+            <div style={S.successBox}>
+              ✦ Our staff will review this request and call the venue within 24 hours. You'll receive an email confirmation before any charge is made.
+            </div>
+          )}
+
+          {!result.feasible && result.alternatives?.length > 0 && <>
+            <div style={S.altLabel}>Similar experiences we can book</div>
+            {result.alternatives.map((alt, i) => (
+              <div key={i} style={S.altCard}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(192,154,58,0.35)"; e.currentTarget.style.background = "rgba(244,239,230,0.04)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(192,154,58,0.15)"; e.currentTarget.style.background = "rgba(244,239,230,0.02)"; }}
+              >
+                <span style={{ fontSize: 22, flexShrink: 0, marginTop: 2 }}>{alt.emoji}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={S.altName}>{alt.name}</div>
+                  <div style={S.altWhy}>{alt.why}</div>
+                  <span style={S.altDiff(alt.difficulty)}>{alt.difficulty} to book</span>
+                </div>
+                <button style={{ ...S.bookBtn, background: booked === alt.name ? "rgba(192,154,58,0.15)" : "transparent" }}
+                  onClick={() => { setBooked(alt.name); setTimeout(() => setBooked(null), 2000); }}>
+                  {booked === alt.name ? "Added ✓" : "Book this →"}
+                </button>
+              </div>
+            ))}
+          </>}
+
+          <button style={S.resetBtn} onClick={reset}>← New request</button>
+        </>}
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
