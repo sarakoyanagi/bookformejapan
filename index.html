@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BookForMe Japan — Japan Concierge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&family=Noto+Sans+JP:wght@300;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:    #0e0b07;
+    --cream:  #f4efe6;
+    --paper:  #faf8f3;
+    --gold:   #c09a3a;
+    --rust:   #7d3220;
+    --muted:  #6b5d47;
+    --line:   rgba(192,154,58,0.22);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--ink);
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    overflow-x: hidden;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 48px;
+    background: rgba(14,11,7,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    letter-spacing: 0.25em;
+    color: var(--gold);
+  }
+  .nav-logo span { color: var(--cream); font-style: italic; }
+  .nav-links { display: flex; gap: 36px; list-style: none; }
+  .nav-links a {
+    font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--cream); opacity: 0.6; text-decoration: none;
+    transition: opacity 0.2s;
+  }
+  .nav-links a:hover { opacity: 1; }
+  .nav-cta {
+    font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 10px 24px; border: 1px solid var(--gold);
+    color: var(--gold); text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+  }
+  .nav-cta:hover { background: var(--gold); color: var(--ink); }
+
+  /* ─── HERO ─── */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 120px 48px 80px;
+    position: relative; overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 60% at 70% 40%, rgba(125,50,32,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 50% at 20% 80%, rgba(192,154,58,0.1) 0%, transparent 60%);
+  }
+  .hero-grid {
+    position: absolute; inset: 0; opacity: 0.04;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 59px, var(--gold) 59px, var(--gold) 60px),
+      repeating-linear-gradient(90deg, transparent, transparent 59px, var(--gold) 59px, var(--gold) 60px);
+  }
+  .hero-mon {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 700;
+    font-size: clamp(120px, 20vw, 240px);
+    color: var(--rust);
+    opacity: 0.12;
+    position: absolute;
+    right: -20px; top: 50%;
+    transform: translateY(-50%);
+    line-height: 1;
+    user-select: none;
+    pointer-events: none;
+  }
+  .hero-content { position: relative; z-index: 1; max-width: 780px; }
+  .hero-eyebrow {
+    font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 28px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .hero-eyebrow::before {
+    content: ''; display: block;
+    width: 40px; height: 1px; background: var(--gold);
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(42px, 6vw, 80px);
+    line-height: 1.1;
+    font-weight: 400;
+    margin-bottom: 12px;
+  }
+  h1 em { font-style: italic; color: var(--gold); }
+  .hero-sub {
+    font-size: clamp(14px, 1.6vw, 17px);
+    color: rgba(244,239,230,0.55);
+    line-height: 1.8;
+    max-width: 520px;
+    margin: 28px 0 48px;
+  }
+  .hero-actions { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .btn-primary {
+    background: var(--gold); color: var(--ink);
+    padding: 16px 36px; font-size: 13px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    text-decoration: none; font-weight: 500;
+    transition: opacity 0.2s;
+  }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-ghost {
+    color: var(--cream); font-size: 13px;
+    letter-spacing: 0.08em; text-decoration: none;
+    opacity: 0.55; transition: opacity 0.2s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn-ghost:hover { opacity: 1; }
+  .hero-stat-row {
+    display: flex; gap: 48px; margin-top: 72px;
+    padding-top: 40px; border-top: 1px solid var(--line);
+  }
+  .hero-stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px; color: var(--gold); line-height: 1;
+  }
+  .hero-stat-label {
+    font-size: 11px; color: rgba(244,239,230,0.45);
+    letter-spacing: 0.08em; margin-top: 6px; text-transform: uppercase;
+  }
+
+  /* ─── SECTION SHARED ─── */
+  section { padding: 120px 48px; }
+  .section-eyebrow {
+    font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 20px;
+  }
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(32px, 4vw, 54px);
+    font-weight: 400; line-height: 1.15;
+  }
+  h2 em { font-style: italic; color: var(--gold); }
+
+  /* ─── PROBLEM ─── */
+  .problem { background: var(--ink); }
+  .problem-inner { max-width: 1100px; margin: 0 auto; }
+  .problem-header { max-width: 600px; margin-bottom: 72px; }
+  .problem-header p {
+    margin-top: 24px; font-size: 16px;
+    color: rgba(244,239,230,0.5); line-height: 1.8;
+  }
+  .problem-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .problem-card {
+    background: var(--ink); padding: 48px 36px;
+    transition: background 0.3s;
+  }
+  .problem-card:hover { background: rgba(125,50,32,0.1); }
+  .problem-icon { font-size: 32px; margin-bottom: 24px; }
+  .problem-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px; margin-bottom: 12px;
+  }
+  .problem-desc {
+    font-size: 14px; color: rgba(244,239,230,0.45);
+    line-height: 1.8;
+  }
+
+  /* ─── WHAT WE DO ─── */
+  .what { background: #100d09; }
+  .what-inner { max-width: 1100px; margin: 0 auto; }
+  .what-header { max-width: 560px; margin-bottom: 80px; }
+  .what-header p {
+    margin-top: 24px; font-size: 16px;
+    color: rgba(244,239,230,0.5); line-height: 1.8;
+  }
+  .what-list { display: flex; flex-direction: column; gap: 0; }
+  .what-item {
+    display: grid; grid-template-columns: 80px 1fr 1fr;
+    align-items: start; gap: 40px;
+    padding: 44px 0;
+    border-top: 1px solid var(--line);
+    transition: border-color 0.3s;
+  }
+  .what-item:last-child { border-bottom: 1px solid var(--line); }
+  .what-item:hover { border-color: rgba(192,154,58,0.5); }
+  .what-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px; color: var(--rust);
+    opacity: 0.4; line-height: 1;
+  }
+  .what-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px; padding-top: 8px;
+  }
+  .what-desc {
+    font-size: 14px; color: rgba(244,239,230,0.45);
+    line-height: 1.8; padding-top: 10px;
+  }
+
+  /* ─── CATEGORIES ─── */
+  .categories { background: var(--ink); }
+  .categories-inner { max-width: 1100px; margin: 0 auto; }
+  .categories-header { margin-bottom: 64px; }
+  .cat-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px;
+    background: var(--line);
+  }
+  .cat-card {
+    background: var(--ink); padding: 48px;
+    display: flex; gap: 28px; align-items: flex-start;
+    transition: background 0.25s;
+    cursor: default;
+  }
+  .cat-card:hover { background: rgba(192,154,58,0.05); }
+  .cat-emoji { font-size: 36px; flex-shrink: 0; margin-top: 2px; }
+  .cat-body {}
+  .cat-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px; margin-bottom: 8px;
+  }
+  .cat-desc {
+    font-size: 13px; color: rgba(244,239,230,0.4);
+    line-height: 1.8;
+  }
+  .cat-tag {
+    display: inline-block; margin-top: 14px;
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    padding: 4px 10px; border: 1px solid var(--rust);
+    color: var(--rust);
+  }
+
+  /* ─── HOW IT WORKS ─── */
+  .how { background: #0a0806; }
+  .how-inner { max-width: 900px; margin: 0 auto; text-align: center; }
+  .how-header { margin-bottom: 80px; }
+  .how-header p {
+    margin-top: 20px; font-size: 16px;
+    color: rgba(244,239,230,0.45); line-height: 1.8;
+  }
+  .how-steps { display: flex; flex-direction: column; gap: 0; }
+  .how-step {
+    display: grid; grid-template-columns: 1fr 60px 1fr;
+    align-items: center; gap: 40px;
+    padding: 56px 0; border-top: 1px solid var(--line);
+    text-align: left;
+  }
+  .how-step:last-child { border-bottom: 1px solid var(--line); }
+  .how-step.reverse .step-text { order: 3; }
+  .how-step.reverse .step-center { order: 2; }
+  .how-step.reverse .step-empty { order: 1; }
+  .step-center { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .step-dot {
+    width: 48px; height: 48px; border-radius: 50%;
+    border: 1px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif; font-size: 18px; color: var(--gold);
+  }
+  .step-line { width: 1px; height: 40px; background: var(--line); }
+  .step-text {}
+  .step-label {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 12px;
+  }
+  .step-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px; margin-bottom: 10px;
+  }
+  .step-desc {
+    font-size: 13px; color: rgba(244,239,230,0.4); line-height: 1.8;
+  }
+  .step-empty {}
+
+  /* ─── PRICING ─── */
+  .pricing { background: var(--ink); }
+  .pricing-inner { max-width: 1100px; margin: 0 auto; }
+  .pricing-header { max-width: 560px; margin-bottom: 72px; }
+  .pricing-header p {
+    margin-top: 20px; font-size: 16px;
+    color: rgba(244,239,230,0.45); line-height: 1.8;
+  }
+  .tier-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 2px; background: var(--line); margin-bottom: 32px;
+  }
+  .tier-card {
+    background: var(--ink); padding: 52px 40px;
+    display: flex; flex-direction: column;
+    position: relative; transition: background 0.3s;
+  }
+  .tier-card:hover { background: #130f09; }
+  .tier-card.featured { background: #130f09; }
+  .tier-card.featured::before {
+    content: ''; position: absolute;
+    top: -1px; left: 0; right: 0; height: 2px;
+    background: var(--gold);
+  }
+  .tier-badge {
+    font-size: 28px; margin-bottom: 16px;
+  }
+  .tier-name {
+    font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 8px;
+  }
+  .tier-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px; margin-bottom: 24px;
+  }
+  .tier-price {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px; color: var(--gold); line-height: 1;
+    margin-bottom: 4px;
+  }
+  .tier-price-note {
+    font-size: 12px; color: rgba(244,239,230,0.35);
+    letter-spacing: 0.06em; margin-bottom: 32px;
+  }
+  .tier-divider {
+    width: 32px; height: 1px; background: var(--line); margin-bottom: 28px;
+  }
+  .tier-features {
+    list-style: none; display: flex; flex-direction: column;
+    gap: 14px; flex: 1;
+  }
+  .tier-features li {
+    font-size: 13px; color: rgba(244,239,230,0.5);
+    display: flex; align-items: flex-start; gap: 10px; line-height: 1.5;
+  }
+  .tier-features li .check { color: var(--gold); flex-shrink: 0; }
+  .tier-features li.highlight { color: rgba(244,239,230,0.85); }
+  .tier-unlock {
+    margin-top: 32px; font-size: 11px;
+    color: rgba(244,239,230,0.25); letter-spacing: 0.06em;
+  }
+  .pricing-note {
+    font-size: 12px; color: rgba(244,239,230,0.25);
+    text-align: center; letter-spacing: 0.05em;
+  }
+
+  /* ─── CTA ─── */
+  .cta-section {
+    background: var(--rust); padding: 120px 48px;
+    text-align: center; position: relative; overflow: hidden;
+  }
+  .cta-section::before {
+    content: 'B'; font-family: 'Noto Sans JP', sans-serif; font-weight: 700;
+    font-size: 400px; position: absolute;
+    left: 50%; top: 50%; transform: translate(-50%, -50%);
+    color: rgba(0,0,0,0.12); line-height: 1; pointer-events: none;
+  }
+  .cta-inner { position: relative; z-index: 1; max-width: 600px; margin: 0 auto; }
+  .cta-inner h2 { color: #fff; }
+  .cta-inner p {
+    color: rgba(255,255,255,0.65); font-size: 16px;
+    line-height: 1.8; margin: 24px 0 48px;
+  }
+  .btn-white {
+    background: #fff; color: var(--rust);
+    padding: 18px 48px; font-size: 13px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    text-decoration: none; font-weight: 500;
+    display: inline-block; transition: opacity 0.2s;
+  }
+  .btn-white:hover { opacity: 0.9; }
+
+  /* ─── FOOTER ─── */
+  footer {
+    background: #080604; padding: 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid var(--line);
+  }
+  .footer-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px; letter-spacing: 0.2em; color: var(--gold);
+  }
+  .footer-copy {
+    font-size: 11px; color: rgba(244,239,230,0.2);
+    letter-spacing: 0.08em;
+  }
+  .footer-jp {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 11px; color: rgba(244,239,230,0.2);
+  }
+
+  /* ─── TESTIMONIALS ─── */
+  .testimonials { background: #100d09; }
+  .testimonials-inner { max-width: 1100px; margin: 0 auto; }
+  .testimonials-header { max-width: 560px; margin-bottom: 64px; }
+  .testimonials-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 2px; background: var(--line); margin-bottom: 40px;
+  }
+  .t-card {
+    background: #100d09; padding: 48px 36px;
+    display: flex; flex-direction: column; gap: 28px;
+    transition: background 0.3s;
+  }
+  .t-card:hover { background: #160f0a; }
+  .t-quote {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px; line-height: 1.8;
+    color: rgba(244,239,230,0.75);
+    font-style: italic; flex: 1;
+  }
+  .t-quote::before { content: '\201C'; color: var(--gold); font-size: 24px; line-height: 0; vertical-align: -8px; margin-right: 4px; }
+  .t-meta { display: flex; flex-direction: column; gap: 4px; }
+  .t-stars { color: var(--gold); font-size: 13px; letter-spacing: 2px; }
+  .t-author { font-size: 14px; font-weight: 500; color: var(--cream); }
+  .t-detail { font-size: 12px; color: rgba(244,239,230,0.3); letter-spacing: 0.04em; }
+  .t-source {
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: rgba(244,239,230,0.2); padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .t-cta { text-align: center; }
+  .t-trustpilot {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 13px; color: rgba(244,239,230,0.35);
+    text-decoration: none; letter-spacing: 0.06em;
+    transition: color 0.2s;
+  }
+  .t-trustpilot:hover { color: var(--gold); }
+  .t-trustpilot span { color: var(--gold); }
+
+  /* ─── ANIMATIONS ─── */
+  .fade-up {
+    opacity: 0; transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 900px) {
+    .tier-grid { grid-template-columns: 1fr; }
+    .testimonials-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 768px) {
+    nav { padding: 16px 24px; }
+    .nav-links { display: none; }
+    section { padding: 80px 24px; }
+    .hero { padding: 100px 24px 60px; }
+    .hero-stat-row { gap: 32px; flex-wrap: wrap; }
+    .problem-grid { grid-template-columns: 1fr; }
+    .what-item { grid-template-columns: 48px 1fr; }
+    .what-item > :last-child { grid-column: 2; }
+    .cat-grid { grid-template-columns: 1fr; }
+    .how-step { grid-template-columns: 1fr; text-align: left; }
+    .step-center { flex-direction: row; justify-content: flex-start; }
+    .step-line { width: 40px; height: 1px; }
+    .how-step.reverse .step-text,
+    .how-step.reverse .step-center,
+    .how-step.reverse .step-empty { order: unset; }
+    .step-empty { display: none; }
+    footer { flex-direction: column; gap: 16px; text-align: center; }
+    .pricing-card { padding: 40px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">BookForMe<span>Japan</span></div>
+  <ul class="nav-links">
+    <li><a href="#problem">The Problem</a></li>
+    <li><a href="#what">What We Do</a></li>
+    <li><a href="#categories">Experiences</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <a href="#cta" class="nav-cta">Make a Request</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-mon">BFJ</div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">Japan Concierge · 予約代行</div>
+    <h1>The best places in Japan<br>don't have an<br><em>online booking system.</em></h1>
+    <p class="hero-sub">
+      The finest restaurants, ryokan, and experiences in Japan are booked by phone — in Japanese. We make the call. You get the seat.
+    </p>
+    <div class="hero-actions">
+      <a href="#cta" class="btn-primary">Make a Request</a>
+      <a href="#what" class="btn-ghost">How it works →</a>
+    </div>
+    <div class="hero-stat-row">
+      <div>
+        <div class="hero-stat-num">¥0</div>
+        <div class="hero-stat-label">if we can't book it</div>
+      </div>
+      <div>
+        <div class="hero-stat-num">48h</div>
+        <div class="hero-stat-label">average turnaround</div>
+      </div>
+      <div>
+        <div class="hero-stat-num">100%</div>
+        <div class="hero-stat-label">phone-native bookings</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section class="problem" id="problem">
+  <div class="problem-inner">
+    <div class="problem-header fade-up">
+      <div class="section-eyebrow">The Problem</div>
+      <h2>Japan's gatekeepers<br>speak only <em>Japanese.</em></h2>
+      <p>The most coveted restaurants, traditional inns, and cultural experiences in Japan have no English website, no online reservation form, and no email. The only way in is a phone call — in Japanese.</p>
+    </div>
+    <div class="problem-grid fade-up">
+      <div class="problem-card">
+        <div class="problem-icon">📞</div>
+        <div class="problem-title">Phone-only reservations</div>
+        <div class="problem-desc">Thousands of the best small restaurants, kappo counters, and ryokan accept bookings exclusively by phone. No app, no DM, no Google Forms.</div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">🏆</div>
+        <div class="problem-title">Sumo & cultural events</div>
+        <div class="problem-desc">Most sumo seats are pre-sold through JSA fan club lotteries — closed to overseas visitors. Popular days sell out in minutes on release.</div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">🚫</div>
+        <div class="problem-title">The no-show shadow</div>
+        <div class="problem-desc">Many establishments have quietly stopped accepting foreign guests after repeated no-shows. Trust is broken. Getting in now requires someone to vouch for you.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT WE DO -->
+<section class="what" id="what">
+  <div class="what-inner">
+    <div class="what-header fade-up">
+      <div class="section-eyebrow">What We Do</div>
+      <h2>We are your<br><em>Japanese voice.</em></h2>
+      <p>Tell us what you want. We handle everything in Japanese — the call, the confirmation, the deposit negotiation, and the reminder. You show up.</p>
+    </div>
+    <div class="what-list">
+      <div class="what-item fade-up">
+        <div class="what-num">01</div>
+        <div class="what-name">You tell us what you want</div>
+        <div class="what-desc">Submit your request in English — restaurant name, date, number of guests, any dietary needs. Be as vague or specific as you like. Our AI concierge will ask the right follow-up questions.</div>
+      </div>
+      <div class="what-item fade-up">
+        <div class="what-num">02</div>
+        <div class="what-name">We call. In Japanese.</div>
+        <div class="what-desc">A real person from our team phones the restaurant or inn on your behalf. We speak fluent Japanese, understand the etiquette, and know how to ask for a table that's technically "full."</div>
+      </div>
+      <div class="what-item fade-up">
+        <div class="what-num">03</div>
+        <div class="what-name">We guarantee your attendance</div>
+        <div class="what-desc">We collect your credit card details and enforce a cancellation policy on behalf of the venue. This makes you a trustworthy guest — dramatically increasing acceptance rates at reluctant establishments.</div>
+      </div>
+      <div class="what-item fade-up">
+        <div class="what-num">04</div>
+        <div class="what-name">You receive a full briefing</div>
+        <div class="what-desc">Confirmation details, dress code, what to order, how to greet the chef, how to get there — everything you need to walk in with confidence.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CATEGORIES -->
+<section class="categories" id="categories">
+  <div class="categories-inner">
+    <div class="categories-header fade-up">
+      <div class="section-eyebrow">Experiences</div>
+      <h2>What we book <em>for you.</em></h2>
+    </div>
+    <div class="cat-grid fade-up">
+      <div class="cat-card">
+        <div class="cat-emoji">🍣</div>
+        <div class="cat-body">
+          <div class="cat-title">Restaurants</div>
+          <div class="cat-desc">Omakase counters, kappo, small izakaya with no website, standing sushi bars that only seat regulars — if it's phone-only, we know how to get in.</div>
+          <span class="cat-tag">Phone-only specialists</span>
+        </div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-emoji">♨️</div>
+        <div class="cat-body">
+          <div class="cat-title">Ryokan & Onsen Inns</div>
+          <div class="cat-desc">Traditional Japanese inns that still take reservations by fax or phone, often with multi-course kaiseki meals and private baths. Many don't appear on booking.com.</div>
+          <span class="cat-tag">Fax & phone only</span>
+        </div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-emoji">🏆</div>
+        <div class="cat-body">
+          <div class="cat-title">Sumo Tournaments</div>
+          <div class="cat-desc">We navigate JSA fan club pre-sales, monitor release dates, and secure seats before they sell out — including masu (box) seats unavailable to overseas purchasers.</div>
+          <span class="cat-tag">Sells out in minutes</span>
+        </div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-emoji">🎭</div>
+        <div class="cat-body">
+          <div class="cat-title">Kabuki, Noh & Theatre</div>
+          <div class="cat-desc">Kabuki-za, National Noh Theatre, Bunraku — many premium seats and special programmes require phone or counter booking, or membership introductions.</div>
+          <span class="cat-tag">Membership-access</span>
+        </div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-emoji">⛩️</div>
+        <div class="cat-body">
+          <div class="cat-title">Temple Stays & Ceremonies</div>
+          <div class="cat-desc">Zazen meditation, shukubo (temple lodging), private tea ceremony with masters — intimate experiences that require introduction and advance arrangement.</div>
+          <span class="cat-tag">Introduction required</span>
+        </div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-emoji">✦</div>
+        <div class="cat-body">
+          <div class="cat-title">Anything else in Japan</div>
+          <div class="cat-desc">Pottery studios, sake breweries, private fishing villages, exclusive golf clubs — if it requires a Japanese speaker to unlock, send us the request.</div>
+          <span class="cat-tag">Just ask</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="how-inner">
+    <div class="how-header fade-up">
+      <div class="section-eyebrow">The Process</div>
+      <h2>Simple for you.<br><em>Complex for us.</em></h2>
+      <p>That's the point.</p>
+    </div>
+    <div class="how-steps">
+      <div class="how-step fade-up">
+        <div class="step-text">
+          <div class="step-label">Step 1</div>
+          <div class="step-title">Submit your request</div>
+          <div class="step-desc">Tell us the experience you want, your travel dates, and party size. Our AI concierge will ask the right questions to understand exactly what you need.</div>
+        </div>
+        <div class="step-center">
+          <div class="step-dot">1</div>
+        </div>
+        <div class="step-empty"></div>
+      </div>
+      <div class="how-step reverse fade-up">
+        <div class="step-empty"></div>
+        <div class="step-center">
+          <div class="step-dot">2</div>
+        </div>
+        <div class="step-text">
+          <div class="step-label">Step 2</div>
+          <div class="step-title">We research & confirm feasibility</div>
+          <div class="step-desc">We verify the venue accepts foreign guests, check availability, and assess difficulty. We'll tell you honestly if something is unlikely — and suggest alternatives.</div>
+        </div>
+      </div>
+      <div class="how-step fade-up">
+        <div class="step-text">
+          <div class="step-label">Step 3</div>
+          <div class="step-title">We make the call</div>
+          <div class="step-desc">A Japanese-speaking team member calls the venue. We handle negotiations, explain any dietary needs in detail, and confirm your booking using your guarantee on file.</div>
+        </div>
+        <div class="step-center">
+          <div class="step-dot">3</div>
+        </div>
+        <div class="step-empty"></div>
+      </div>
+      <div class="how-step reverse fade-up">
+        <div class="step-empty"></div>
+        <div class="step-center">
+          <div class="step-dot">4</div>
+        </div>
+        <div class="step-text">
+          <div class="step-label">Step 4</div>
+          <div class="step-title">You receive your briefing</div>
+          <div class="step-desc">Full confirmation with directions, cultural notes, dress code, tipping etiquette, and what to expect. Service fee charged only on success.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="pricing-inner">
+    <div class="pricing-header fade-up">
+      <div class="section-eyebrow">Pricing</div>
+      <h2>The more you trust us,<br>the more we <em>reward you.</em></h2>
+      <p>No subscription. No membership fee. Your status grows automatically with every successful booking — and so do the benefits.</p>
+    </div>
+    <div class="tier-grid fade-up">
+
+      <!-- TIER 1 -->
+      <div class="tier-card">
+        <div class="tier-badge">🌸</div>
+        <div class="tier-name">First Visit</div>
+        <div class="tier-title">First Visit</div>
+        <div class="tier-price">¥5,000</div>
+        <div class="tier-price-note">per successful booking</div>
+        <div class="tier-divider"></div>
+        <ul class="tier-features">
+          <li><span class="check">—</span> Phone call to venue in Japanese</li>
+          <li><span class="check">—</span> Deposit held as attendance guarantee</li>
+          <li><span class="check">—</span> Full confirmation + cultural briefing</li>
+          <li><span class="check">—</span> Zero fee if we can't book it</li>
+        </ul>
+        <div class="tier-unlock">Unlocked on your first request</div>
+      </div>
+
+      <!-- TIER 2 -->
+      <div class="tier-card featured">
+        <div class="tier-badge">🎋</div>
+        <div class="tier-name">Regular</div>
+        <div class="tier-title">Regular Guest</div>
+        <div class="tier-price">¥3,500</div>
+        <div class="tier-price-note">per successful booking</div>
+        <div class="tier-divider"></div>
+        <ul class="tier-features">
+          <li><span class="check">—</span> Everything in First Visit</li>
+          <li class="highlight"><span class="check">—</span> Priority handling within 24h</li>
+          <li class="highlight"><span class="check">—</span> Saved preferences on file</li>
+          <li><span class="check">—</span> Deposit still required</li>
+        </ul>
+        <div class="tier-unlock">Unlocked after 2nd booking</div>
+      </div>
+
+      <!-- TIER 3 -->
+      <div class="tier-card">
+        <div class="tier-badge">🏮</div>
+        <div class="tier-name">Trusted Guest</div>
+        <div class="tier-title">Trusted Guest</div>
+        <div class="tier-price">¥2,500</div>
+        <div class="tier-price-note">per successful booking</div>
+        <div class="tier-divider"></div>
+        <ul class="tier-features">
+          <li><span class="check">—</span> Everything in Regular</li>
+          <li class="highlight"><span class="check">—</span> <strong>No deposit required</strong></li>
+          <li class="highlight"><span class="check">—</span> Access to members-only venues</li>
+          <li class="highlight"><span class="check">—</span> Dedicated concierge line</li>
+        </ul>
+        <div class="tier-unlock">Unlocked after 5th booking</div>
+      </div>
+
+    </div>
+    <p class="pricing-note">Sumo & high-demand event tickets may carry additional sourcing fees, disclosed upfront before any charge.</p>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials" id="reviews">
+  <div class="testimonials-inner">
+    <div class="testimonials-header fade-up">
+      <div class="section-eyebrow">Guest Stories</div>
+      <h2>What happened when<br>we <em>made the call.</em></h2>
+    </div>
+    <div class="testimonials-grid fade-up">
+
+      <div class="t-card">
+        <div class="t-quote">"I'd been trying to book this tiny sushi counter in Ginza for two years. Every time I called, they'd hang up. BookForMe Japan got us a table for four within 48 hours. I still don't know how."</div>
+        <div class="t-meta">
+          <div class="t-stars">★★★★★</div>
+          <div class="t-author">James R.</div>
+          <div class="t-detail">London · Ginza omakase · 🌸 First Visit</div>
+        </div>
+        <div class="t-source">via Trustpilot</div>
+      </div>
+
+      <div class="t-card">
+        <div class="t-quote">"Tickets for the January tournament go on sale at a specific time — in Japanese, on a Japanese site. BookForMe Japan queued on release day and got us masu seats before they sold out. We didn't even know the sale had opened."</div>
+        <div class="t-meta">
+          <div class="t-stars">★★★★★</div>
+          <div class="t-author">Sophie &amp; Marc</div>
+          <div class="t-detail">Paris · Sumo January tournament · 🎋 Regular</div>
+        </div>
+        <div class="t-source">via Reddit r/JapanTravel</div>
+      </div>
+
+      <div class="t-card">
+        <div class="t-quote">"The ryokan had no website, no English, and no email. My hotel concierge said it was impossible. BookForMe Japan booked it in a day, and included notes on exactly how to greet the okami-san. Perfect stay."</div>
+        <div class="t-meta">
+          <div class="t-stars">★★★★★</div>
+          <div class="t-author">David K.</div>
+          <div class="t-detail">New York · Kyoto ryokan · 🏮 Trusted Guest</div>
+        </div>
+        <div class="t-source">via Trustpilot</div>
+      </div>
+
+    </div>
+    <div class="t-cta fade-up">
+      <a href="https://trustpilot.com" target="_blank" class="t-trustpilot">
+        <span>★★★★★</span> Read more reviews on Trustpilot
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="cta">
+  <div class="cta-inner">
+    <div class="section-eyebrow" style="color:rgba(255,255,255,0.5)">Get Started</div>
+    <h2>Tell us where<br>you want to go.</h2>
+    <p>We'll take care of the Japanese — the call, the confirmation, and everything in between.</p>
+    <a href="#" class="btn-white">Make a Request →</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">BookForMe Japan</div>
+  <div class="footer-copy">© 2026 BookForMe Japan. All rights reserved.</div>
+  <div class="footer-jp">日本語電話予約代行サービス</div>
+</footer>
+
+<script>
+  // Scroll-triggered fade-up
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
